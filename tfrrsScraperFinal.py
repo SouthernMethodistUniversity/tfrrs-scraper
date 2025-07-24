@@ -8,7 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
-import undetected_chromedriver as uc
+from selenium.webdriver.chrome.service import Service
+#import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import random
 from playwright.sync_api import sync_playwright
@@ -62,21 +63,30 @@ EVENTS = [
 
 
 def setup_driver(headless=True):
-    ''' 
-    sets up undetected chromedriver using options/settings to make scraper more silent
     '''
-    options = uc.ChromeOptions()
+    Sets up ChromeDriver manually using local binary paths.
+    '''
+    options = Options()
     if headless:
         options.add_argument("--headless=new")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
 
-    options.binary_location = "~/chromium/chrome-linux/chrome"
+    # Optional: use this if you're using a downloaded standalone Chromium build
+    options.binary_location = os.path.expanduser("~/chromium/chrome-linux/chrome")
 
-    #options.add_argument("--no-sandbox")
-    driver = uc.Chrome(options=options, version_main=140)
-    driver.set_page_load_timeout(30)
-    return driver
+    # Point to your downloaded chromedriver binary
+    chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
+    service = Service(executable_path=chromedriver_path)
+
+    try:
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(30)
+        return driver
+    except Exception as e:
+        print(f"Error setting up ChromeDriver: {e}")
+        raise
 
 def playwright_get_html(url, wait_selector="table", timeout=25000):
     '''
