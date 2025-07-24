@@ -65,20 +65,21 @@ EVENTS = [
 
 def setup_driver(headless=True):
     options = Options()
+
     if headless:
         options.add_argument("--headless=new")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
 
-    # ✅ Point to Chromium 138
+    # ✅ Use your Chromium binary
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
-    # ✅ NEW: create a unique temp dir and print it
-    temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
-    print(f"Using user-data-dir: {temp_user_data_dir}")
+    # ✅ Use a system-generated temp dir for user profile (no visible path)
+    temp_user_data_dir = tempfile.mkdtemp()
     options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
+    # ✅ ChromeDriver path
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
     service = Service(executable_path=chromedriver_path)
 
