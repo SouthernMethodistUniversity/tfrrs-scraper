@@ -24,6 +24,7 @@ dependencies:
   - libsecret
   - libgl
   - mesa
+  - lxml
   - pip
   - pip:
       - undetected-chromedriver
