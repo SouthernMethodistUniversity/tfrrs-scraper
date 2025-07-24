@@ -14,4 +14,4 @@ mkdir -p debug
 module load conda
 conda activate tfrrs
 
-python /users/mlangstonsmith/tfrrsScraperFinal.py
+python /users/mlangstonsmith/tfrrs-scraper/tfrrsScraperFinal.py
