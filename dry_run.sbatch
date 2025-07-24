@@ -14,6 +14,7 @@ mkdir -p debug
 module purge
 module load conda
 conda activate tfrrs
+module load gcc
 module load mesa
 
 python /users/mlangstonsmith/tfrrs-scraper/tfrrsScraperFinal.py
