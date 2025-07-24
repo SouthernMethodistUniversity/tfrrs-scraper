@@ -64,9 +64,6 @@ EVENTS = [
 
 
 def setup_driver(headless=True):
-    '''
-    Sets up ChromeDriver with a unique user-data-dir to prevent session conflicts.
-    '''
     options = Options()
     if headless:
         options.add_argument("--headless=new")
@@ -74,13 +71,14 @@ def setup_driver(headless=True):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
 
-    # Optional: using standalone Chromium
+    # ✅ Point to Chromium 138
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
-    temp_user_data_dir = tempfile.mkdtemp()
-    options.add_argument(f'--user-data-dir={temp_user_data_dir}')
+    # ✅ NEW: create a unique temp dir and print it
+    temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
+    print(f"Using user-data-dir: {temp_user_data_dir}")
+    options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
-    # Your downloaded ChromeDriver
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
     service = Service(executable_path=chromedriver_path)
 
