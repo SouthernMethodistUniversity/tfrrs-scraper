@@ -23,6 +23,7 @@ dependencies:
   - enchant
   - libsecret
   - libgl
+  - mesa
   - pip
   - pip:
       - undetected-chromedriver
