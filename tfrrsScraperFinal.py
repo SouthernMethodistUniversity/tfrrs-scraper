@@ -66,17 +66,19 @@ EVENTS = [
 def setup_driver(headless=True):
     options = Options()
 
-    #if headless:
-    #    options.add_argument("--headless=new")
+    if headless:
+        options.add_argument("--headless=new")  # Use Chromium’s newer headless mode
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
     # ✅ Use your Chromium binary
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
-    # ✅ Use a system-generated temp dir for user profile (no visible path)
-    temp_user_data_dir = tempfile.mkdtemp()
+    # ✅ Use a system-generated temp dir for user profile
+    temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
+    print(f"Using user-data-dir: {temp_user_data_dir}")
     options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
     # ✅ ChromeDriver path
@@ -85,6 +87,7 @@ def setup_driver(headless=True):
 
     driver = webdriver.Chrome(service=service, options=options)
     driver.set_page_load_timeout(30)
+
     return driver
 
 def playwright_get_html(url, wait_selector="table", timeout=25000):
