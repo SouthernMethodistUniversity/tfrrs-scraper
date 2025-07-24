@@ -75,7 +75,7 @@ def setup_driver(headless=True):
     options.add_argument("--no-sandbox")
 
     # Optional: using standalone Chromium
-    options.binary_location = os.path.expanduser("~/chromium/chrome-linux/chrome")
+    options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
     temp_user_data_dir = tempfile.mkdtemp()
     options.add_argument(f'--user-data-dir={temp_user_data_dir}')
