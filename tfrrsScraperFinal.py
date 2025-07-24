@@ -17,6 +17,7 @@ from multiprocessing import freeze_support
 from collections import defaultdict
 from decimal import Decimal
 from fake_useragent import UserAgent
+import tempfile
 
 
 EVENTS = [
@@ -64,7 +65,7 @@ EVENTS = [
 
 def setup_driver(headless=True):
     '''
-    Sets up ChromeDriver manually using local binary paths.
+    Sets up ChromeDriver with a unique user-data-dir to prevent session conflicts.
     '''
     options = Options()
     if headless:
@@ -73,20 +74,19 @@ def setup_driver(headless=True):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
 
-    # Optional: use this if you're using a downloaded standalone Chromium build
+    # Optional: using standalone Chromium
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux/chrome")
 
-    # Point to your downloaded chromedriver binary
+    temp_user_data_dir = tempfile.mkdtemp()
+    options.add_argument(f'--user-data-dir={temp_user_data_dir}')
+
+    # Your downloaded ChromeDriver
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
     service = Service(executable_path=chromedriver_path)
 
-    try:
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.set_page_load_timeout(30)
-        return driver
-    except Exception as e:
-        print(f"Error setting up ChromeDriver: {e}")
-        raise
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.set_page_load_timeout(30)
+    return driver
 
 def playwright_get_html(url, wait_selector="table", timeout=25000):
     '''
