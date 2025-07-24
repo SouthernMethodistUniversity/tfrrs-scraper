@@ -70,8 +70,11 @@ def setup_driver(headless=True):
         options.add_argument("--headless=new")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-gpu")
+
+    options.binary_location = "~/chromium/chrome-linux/chrome"
+
     #options.add_argument("--no-sandbox")
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, version_main=140)
     driver.set_page_load_timeout(30)
     return driver
 

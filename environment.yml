@@ -7,6 +7,22 @@ dependencies:
   - pandas
   - selenium
   - beautifulsoup4
+  - nodejs
+  - gtk4
+  - graphene
+  - gst-plugins-base
+  - gst-plugins-good
+  - gst-plugins-bad
+  - gst-plugins-ugly
+  - gst-libav
+  - gstreamer
+  - flite
+  - libwebp
+  - libavif
+  - harfbuzz
+  - enchant
+  - libsecret
+  - libgl
   - pip
   - pip:
       - undetected-chromedriver
