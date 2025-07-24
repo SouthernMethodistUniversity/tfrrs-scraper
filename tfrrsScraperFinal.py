@@ -294,7 +294,7 @@ def merge_athletes(event_name, table_pairs, is_field):
                 event_aths[event_key] = athlete
             else:
                 # Combining athlete rows for rounds
-                existing = event_aths[key]
+                existing = event_aths[event_key]
                 if athlete['prelim']:
                     existing['prelim'] = athlete['prelim']
                 if athlete['final']:
