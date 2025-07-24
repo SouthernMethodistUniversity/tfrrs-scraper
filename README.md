@@ -4,6 +4,6 @@
 
 ```
 conda env create -f environment.yml
-conda activate webscraper-env
-playwright install  # Install browser binaries after environment is active
+conda activate tfrrs
+playwright install
 ```
