@@ -7,7 +7,7 @@ conda env create -f environment.yml
 conda activate tfrrs
 ```
 
-## Install `mesa` manually
+## Install `libgbm1` manually
 
 ```
 cd ~
@@ -17,6 +17,8 @@ cp libgbm1/usr/lib/x86_64-linux-gnu/libgbm.so.1* $CONDA_PREFIX/lib/
 rm libgbm1_23.2.1-1ubuntu3.1~22.04.3_amd64.deb
 rm -r libgbm1
 ```
+
+Note: In the sbatch script, `export LD_LIBRARY_PATH=$HOME/.conda/envs/tfrrs/lib:$LD_LIBRARY_PATH` is telling it to look in the conda environment for libgbm1 instead of the system installation.
 
 ## Install Chromium
 
