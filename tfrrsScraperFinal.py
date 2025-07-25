@@ -258,6 +258,7 @@ def scrape_meets(input_csv, output_csv):
     left_meets = []
 
     for idx, url in enumerate(urls):
+        time.sleep(2)
         print(f"Processing meet {url} -- {idx}/{len(urls)}")
 
         page_soup = get_html(url)
