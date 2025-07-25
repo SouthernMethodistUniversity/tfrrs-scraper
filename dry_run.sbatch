@@ -18,5 +18,9 @@ pkill -f chrome
 module purge
 module load conda
 conda activate tfrrs
+module load gcc/11.2.0
+module load mesa
+
+export LD_LIBRARY_PATH=/hpc/m3/spack/opt/spack/linux-ubuntu22.04-zen3/gcc-11.2.0/mesa-23.3.6-hlb3xpi4itdm77eqky5yfersq34puien/lib:$LD_LIBRARY_PATH
 
 python /users/mlangstonsmith/tfrrs-scraper/tfrrsScraperFinal.py
