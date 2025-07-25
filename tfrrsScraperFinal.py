@@ -3,25 +3,10 @@ import time
 import os
 from urllib.parse import urljoin, quote
 import pandas as pd
-#from selenium import webdriver
-#from selenium.webdriver.common.by import By
-#from selenium.webdriver.chrome.options import Options
-#from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
-#from selenium.webdriver.remote.webelement import WebElement
-#from selenium.webdriver.chrome.service import Service
-#import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-#import random
-#from playwright.sync_api import sync_playwright
-#from multiprocessing import freeze_support
 from collections import defaultdict
 from decimal import Decimal
-#from fake_useragent import UserAgent
-#import tempfile
 import pickle
-#import uuid
-#from pathlib import Path
-#import shutil
 import requests
 
 
@@ -391,10 +376,10 @@ def scrape_iterator(input_csv, output_csv):
         time.sleep(20)
 
 
-#full_df = pd.read_csv("gendered_meets_01102025.csv")
+full_df = pd.read_csv("gendered_meets_01102025.csv")
 #full_df = full_df[::2]
 #full_df.to_csv('adj.csv', index=False)
-#trial_df = full_df[7000:7002]
-#trial_df.to_csv('trial_run.csv', index=False)
+trial_df = full_df[7000:7002]
+trial_df.to_csv('trial_run.csv', index=False)
 
-scrape_meets("gendered_meets_01102025.csv", "results.csv")
+scrape_meets("trial_run.csv", "trial_results.csv")
