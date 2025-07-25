@@ -330,8 +330,7 @@ def merge_athletes(event_name, table_pairs, is_field):
 
 def scrape_meets(input_csv, output_csv):
     '''
-    Uses Our selenium driver to go into the gendered compiled pages, then uses helpers
-    to grab the athlete data and compile it
+    Uses a persistent Selenium driver to scrape all meets in a single session
     '''
     input_df = pd.read_csv(input_csv)
     urls = input_df['original_url'].reset_index(drop=True)
@@ -342,80 +341,90 @@ def scrape_meets(input_csv, output_csv):
     all_results = []
     left_meets = []
 
-    for idx, url in enumerate(urls):
-        print(f"Processing meet {url} -- {idx}/{len(urls)}")
-        driver = setup_driver(headless=True)
+    driver = setup_driver(headless=True)
 
-        if not selenium_html_driver(driver, url):
-            print(f"Failed to load {url}")
-            left_meets.append({
-                'original_url': url,
-                'DATE': dates[idx],
-                'MEET': meets[idx],
-                'STATE_PROV': states[idx]
-            })
-            driver.quit()
-            continue
+    try:
+        for idx, url in enumerate(urls):
+            print(f"Processing meet {url} -- {idx}/{len(urls)}")
+            try:
+                driver.delete_all_cookies()
 
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-        links = soup.find_all('a', href=True)
+                if not selenium_html_driver(driver, url):
+                    print(f"Failed to load {url}")
+                    left_meets.append({
+                        'original_url': url,
+                        'DATE': dates[idx],
+                        'MEET': meets[idx],
+                        'STATE_PROV': states[idx]
+                    })
+                    continue
 
-        link_data = [
-            (link.text.strip(), urljoin(url, link['href']))
-            for link in links
-            if 'compiled' in link.text.strip().lower() 
-        ]
+                soup = BeautifulSoup(driver.page_source, 'lxml')
+                links = soup.find_all('a', href=True)
 
-        for link_text, compiled_url in link_data:
-            print(f"Visiting {compiled_url}")
-            if not selenium_html_driver(driver, compiled_url):
-                print(f"Failed to load page {compiled_url}")
-                time.sleep(2)
-                continue
+                link_data = [
+                    (link.text.strip(), urljoin(url, link['href']))
+                    for link in links
+                    if 'compiled' in link.text.strip().lower() 
+                ]
 
-            full_soup = BeautifulSoup(driver.page_source, 'lxml')
-            gender = athlete_gender(full_soup)
-            table_elements = driver.find_elements(By.TAG_NAME, "table")
-
-            event_table_map = defaultdict(list)
-            # Searches for all large contianers(non section or heat tables)
-            for container in full_soup.find_all('div', class_=re.compile(r'col-lg-12')):
-                round_label = mark_round(container)
-                print(f"Round Label {round_label}")
-                event_name, table_id = athlete_event(container)
-                if event_name != 'Unknown' and table_id:
-                    try:
-                        table_element = driver.find_element(By.ID, table_id)
-                        event_table_map[event_name].append((table_element, round_label))
-                    except:
+                for link_text, compiled_url in link_data:
+                    print(f"Visiting {compiled_url}")
+                    if not selenium_html_driver(driver, compiled_url):
+                        print(f"Failed to load page {compiled_url}")
+                        time.sleep(2)
                         continue
 
-            for event_name, table_pairs in event_table_map.items():
-                is_field = is_field_event(event_name)
-                merged_athletes = merge_athletes(event_name, table_pairs, is_field)
-                # Using a lambda function to sort based on field event or not
-                sorted_aths = sorted(merged_athletes, key=lambda x: -x['mark'] if is_field else x['mark'])
+                    full_soup = BeautifulSoup(driver.page_source, 'lxml')
+                    gender = athlete_gender(full_soup)
+                    table_elements = driver.find_elements(By.TAG_NAME, "table")
 
-                for place, athlete in enumerate(sorted_aths, 1):
-                    all_results.append({
-                        'Date': dates[idx],
-                        'Meet': meets[idx],
-                        'State': states[idx],
-                        'Name': athlete['name'],
-                        'Year': athlete['year'],
-                        'Event': event_name,
-                        'Prelim': '' if is_field else athlete.get('prelim'),
-                        'Final': '' if is_field else athlete.get('final'),
-                        'Best_Mark': athlete['mark'],
-                        'Place': place,
-                        'Gender': gender,
-                        'Team': athlete['team'],
-                        'Athlete_ID': athlete['athlete_id']
-                    })
-        
-        with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
-            pickle.dump(all_results, f)
+                    event_table_map = defaultdict(list)
+                    for container in full_soup.find_all('div', class_=re.compile(r'col-lg-12')):
+                        round_label = mark_round(container)
+                        event_name, table_id = athlete_event(container)
+                        if event_name != 'Unknown' and table_id:
+                            try:
+                                table_element = driver.find_element(By.ID, table_id)
+                                event_table_map[event_name].append((table_element, round_label))
+                            except:
+                                continue
 
+                    for event_name, table_pairs in event_table_map.items():
+                        is_field = is_field_event(event_name)
+                        merged_athletes = merge_athletes(event_name, table_pairs, is_field)
+                        sorted_aths = sorted(merged_athletes, key=lambda x: -x['mark'] if is_field else x['mark'])
+
+                        for place, athlete in enumerate(sorted_aths, 1):
+                            all_results.append({
+                                'Date': dates[idx],
+                                'Meet': meets[idx],
+                                'State': states[idx],
+                                'Name': athlete['name'],
+                                'Year': athlete['year'],
+                                'Event': event_name,
+                                'Prelim': '' if is_field else athlete.get('prelim'),
+                                'Final': '' if is_field else athlete.get('final'),
+                                'Best_Mark': athlete['mark'],
+                                'Place': place,
+                                'Gender': gender,
+                                'Team': athlete['team'],
+                                'Athlete_ID': athlete['athlete_id']
+                            })
+
+                with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
+                    pickle.dump(all_results, f)
+
+            except Exception as e:
+                print(f"[ERROR] Meet {url} failed with exception: {e}")
+                left_meets.append({
+                    'original_url': url,
+                    'DATE': dates[idx],
+                    'MEET': meets[idx],
+                    'STATE_PROV': states[idx]
+                })
+
+    finally:
         driver.quit()
 
     pd.DataFrame(all_results).to_csv(output_csv, index=False)
@@ -424,6 +433,7 @@ def scrape_meets(input_csv, output_csv):
     else:
         if os.path.exists('remaining_meets.csv'):
             os.remove('remaining_meets.csv')
+
     print(f"Saved to {output_csv} with {len(all_results)} rows")
 
 def scrape_iterator(input_csv, output_csv):
