@@ -17,9 +17,10 @@ from multiprocessing import freeze_support
 from collections import defaultdict
 from decimal import Decimal
 from fake_useragent import UserAgent
-import tempfile
+#import tempfile
 import pickle
 import uuid
+from pathlib import Path
 
 
 EVENTS = [
@@ -82,14 +83,14 @@ def setup_driver(headless=True):
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
     # ✅ Use a system-generated temp dir for user profile
-    temp_user_data_dir = f"/tmp/selenium-profile-{uuid.uuid4()}"
-    print(f"[DEBUG] Trying user-data-dir: {temp_user_data_dir}")
+    base_tmp = Path.home() / "chrome_profiles"
+    base_tmp.mkdir(parents=True, exist_ok=True)
 
-    if not os.access(temp_user_data_dir, os.W_OK | os.X_OK):
-        raise PermissionError(f"Cannot write to user-data-dir: {temp_user_data_dir}")
+    temp_user_data_dir = base_tmp / f"selenium-profile-{uuid.uuid4()}"
+    temp_user_data_dir.mkdir()
     #temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
-    #print(f"Using user-data-dir: {temp_user_data_dir}")
-    #options.add_argument(f"--user-data-dir={temp_user_data_dir}")
+    print(f"Using user-data-dir: {temp_user_data_dir}")
+    options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
     # ✅ ChromeDriver path
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
