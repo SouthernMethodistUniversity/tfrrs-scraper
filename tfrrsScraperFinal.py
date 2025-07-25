@@ -18,6 +18,7 @@ from collections import defaultdict
 from decimal import Decimal
 from fake_useragent import UserAgent
 import tempfile
+import pickle
 
 
 EVENTS = [
@@ -61,6 +62,9 @@ EVENTS = [
     'Heptathlon',
     'Pentathlon'
 ]
+
+TMP_DIR = "$SCRATCH/tfrrs_partials"
+os.makedirs(TMP_DIR, exist_ok=True)
 
 
 def setup_driver(headless=True):
@@ -320,7 +324,7 @@ def scrape_meets(input_csv, output_csv):
     left_meets = []
 
     for idx, url in enumerate(urls):
-        print(f"Processing meet {url}")
+        print(f"Processing meet {url} -- {idx}/{len(urls)}")
         driver = setup_driver(headless=True)
 
         if not selenium_html_driver(driver, url):
@@ -389,6 +393,9 @@ def scrape_meets(input_csv, output_csv):
                         'Team': athlete['team'],
                         'Athlete_ID': athlete['athlete_id']
                     })
+        
+        with open(f'{TMP_DIR}/{idx}_partial.pkl', 'wb') as f:
+            pickle.dump(all_results, f)
 
         driver.quit()
 
@@ -408,8 +415,10 @@ def scrape_iterator(input_csv, output_csv):
     current_input = input_csv
 
     while True:
+        
         print(f"Attempt {attempt + 1} on {current_input}")
-        scrape_meets(current_input, "temp_results.csv")
+        
+        scrape_meets(current_input, output_csv)
 
 
         if not os.path.exists("temp_results.csv") or os.path.getsize("temp_results.csv") == 0:
@@ -457,7 +466,7 @@ def scrape_iterator(input_csv, output_csv):
         attempt += 1
 
         print("Cooling down")
-        time.sleep(180)
+        time.sleep(20)
 
 
 full_df = pd.read_csv("gendered_meets_01102025.csv")
