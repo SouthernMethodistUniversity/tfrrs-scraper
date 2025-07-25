@@ -379,7 +379,7 @@ def scrape_iterator(input_csv, output_csv):
 full_df = pd.read_csv("gendered_meets_01102025.csv")
 #full_df = full_df[::2]
 #full_df.to_csv('adj.csv', index=False)
-trial_df = full_df[7000:7002]
+trial_df = full_df[6970:7002]
 trial_df.to_csv('trial_run.csv', index=False)
 
 scrape_meets("trial_run.csv", "trial_results.csv")
