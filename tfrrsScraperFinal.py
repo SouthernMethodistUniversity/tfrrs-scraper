@@ -63,8 +63,8 @@ EVENTS = [
     'Pentathlon'
 ]
 
-TMP_DIR = "$SCRATCH/tfrrs_partials"
-os.makedirs(TMP_DIR, exist_ok=True)
+SCRATCH = "/lustre/scratch/client/users/mlangstonsmith/tfrrs_partials"
+os.makedirs(SCRATCH, exist_ok=True)
 
 
 def setup_driver(headless=True):
@@ -394,7 +394,7 @@ def scrape_meets(input_csv, output_csv):
                         'Athlete_ID': athlete['athlete_id']
                     })
         
-        with open(f'{TMP_DIR}/{idx}_partial.pkl', 'wb') as f:
+        with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
             pickle.dump(all_results, f)
 
         driver.quit()
