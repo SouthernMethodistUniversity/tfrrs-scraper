@@ -21,6 +21,7 @@ from fake_useragent import UserAgent
 import pickle
 import uuid
 from pathlib import Path
+import shutil
 
 
 EVENTS = [
@@ -70,34 +71,45 @@ os.makedirs(SCRATCH, exist_ok=True)
 
 
 def setup_driver(headless=True):
+    from selenium.common.exceptions import SessionNotCreatedException
+    import shutil
+
     options = Options()
 
     if headless:
-        options.add_argument("--headless=new")  # Use Chromium’s newer headless mode
+        options.add_argument("--headless=new")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-first-run")
+    options.add_argument("--disable-extensions")
 
-    # ✅ Use your Chromium binary
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
-    # ✅ Use a system-generated temp dir for user profile
     base_tmp = Path.home() / "chrome_profiles"
     base_tmp.mkdir(parents=True, exist_ok=True)
 
     temp_user_data_dir = base_tmp / f"selenium-profile-{uuid.uuid4()}"
+    if temp_user_data_dir.exists():
+        shutil.rmtree(temp_user_data_dir)
     temp_user_data_dir.mkdir()
-    #temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
-    print(f"Using user-data-dir: {temp_user_data_dir}")
+
+    print(f"[DEBUG] Using user-data-dir: {temp_user_data_dir}")
     options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
-    # ✅ ChromeDriver path
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
     service = Service(executable_path=chromedriver_path)
 
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(30)
+    try:
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(30)
+    except SessionNotCreatedException as e:
+        print(f"[ERROR] Could not create session: {e}")
+        raise
+    except Exception as e:
+        print(f"[ERROR] Unexpected error launching Chrome: {e}")
+        raise
 
     return driver
 
