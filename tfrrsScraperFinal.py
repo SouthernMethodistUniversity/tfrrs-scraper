@@ -498,10 +498,10 @@ def scrape_iterator(input_csv, output_csv):
         time.sleep(20)
 
 
-full_df = pd.read_csv("gendered_meets_01102025.csv")
+#full_df = pd.read_csv("gendered_meets_01102025.csv")
 #full_df = full_df[::2]
-full_df.to_csv('adj.csv', index=False)
+#full_df.to_csv('adj.csv', index=False)
 #trial_df = full_df[7000:7002]
 #trial_df.to_csv('trial_run.csv', index=False)
 
-scrape_iterator("adj.csv", "results.csv")
+scrape_meets("gendered_meets_01102025.csv", "results.csv")
