@@ -11,6 +11,9 @@
 
 mkdir -p debug
 
+pkill -f chromedriver
+pkill -f chrome
+
 module purge
 module load conda
 conda activate tfrrs
