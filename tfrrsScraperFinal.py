@@ -304,6 +304,14 @@ def scrape_meets(input_csv, output_csv):
 
         with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
             pickle.dump(all_results, f)
+        
+        if os.path.exists(f'{SCRATCH}/{idx-5}_partial.pkl'):
+            os.remove(f'{SCRATCH}/{idx-5}_partial.pkl')
+
+        pd.DataFrame(all_results).to_csv(f"{SCRATCH}/{idx}_{output_csv}", index=False)
+
+        if left_meets:
+            pd.DataFrame(left_meets).to_csv(f"{SCRATCH}/{idx}_remaining_meets.csv", index=False)
 
     pd.DataFrame(all_results).to_csv(output_csv, index=False)
     if left_meets:
