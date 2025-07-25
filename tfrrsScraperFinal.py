@@ -81,9 +81,9 @@ def setup_driver(headless=True):
     options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
 
     # ✅ Use a system-generated temp dir for user profile
-    temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
-    print(f"Using user-data-dir: {temp_user_data_dir}")
-    options.add_argument(f"--user-data-dir={temp_user_data_dir}")
+    #temp_user_data_dir = tempfile.mkdtemp(prefix="selenium-profile-")
+    #print(f"Using user-data-dir: {temp_user_data_dir}")
+    #options.add_argument(f"--user-data-dir={temp_user_data_dir}")
 
     # ✅ ChromeDriver path
     chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")

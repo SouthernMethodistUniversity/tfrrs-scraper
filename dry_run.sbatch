@@ -13,7 +13,7 @@ mkdir -p debug
 
 pkill -f chromedriver
 pkill -f chrome
-rm -rf /tmp/selenium-profile-*
+#rm -rf /tmp/selenium-profile-*
 
 module purge
 module load conda
