@@ -232,8 +232,9 @@ def merge_athletes(event_name, table_pairs, is_field):
                     existing['mark'] = max(existing['mark'], athlete['mark'])
     return list(event_aths.values())
 
-def scrape_meets(input_csv, output_csv):
+def scrape_meets(input_csv, output_csv, start):
     input_df = pd.read_csv(input_csv)
+    input_df = input_df[start:len(input_df)]
     urls = input_df['original_url'].reset_index(drop=True)
     dates = input_df['DATE'].reset_index(drop=True)
     meets = input_df['MEET'].reset_index(drop=True)
@@ -244,16 +245,16 @@ def scrape_meets(input_csv, output_csv):
 
     for idx, url in enumerate(urls):
         time.sleep(2)
-        print(f"Processing meet {url} -- {idx}/{len(urls)}")
+        print(f"Processing meet {url} -- {idx + start}/{len(urls)}")
 
         page_soup = get_html(url)
         if not page_soup:
             print(f"[ERROR] Could not load meet page: {url}")
             left_meets.append({
                 'original_url': url,
-                'DATE': dates[idx],
-                'MEET': meets[idx],
-                'STATE_PROV': states[idx]
+                'DATE': dates[idx + start],
+                'MEET': meets[idx + start],
+                'STATE_PROV': states[idx + start]
             })
             continue
 
@@ -287,9 +288,9 @@ def scrape_meets(input_csv, output_csv):
 
                 for place, athlete in enumerate(sorted_aths, 1):
                     all_results.append({
-                        'Date': dates[idx],
-                        'Meet': meets[idx],
-                        'State': states[idx],
+                        'Date': dates[idx + start],
+                        'Meet': meets[idx + start],
+                        'State': states[idx + start],
                         'Name': athlete['name'],
                         'Year': athlete['year'],
                         'Event': event_name,
@@ -302,22 +303,22 @@ def scrape_meets(input_csv, output_csv):
                         'Athlete_ID': athlete['athlete_id']
                     })
 
-        with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
+        with open(f'{SCRATCH}/{idx + start}_partial.pkl', 'wb') as f:
             pickle.dump(all_results, f)
         
-        if os.path.exists(f'{SCRATCH}/{idx-5}_partial.pkl'):
-            os.remove(f'{SCRATCH}/{idx-5}_partial.pkl')
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_partial.pkl'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_partial.pkl')
 
-        pd.DataFrame(all_results).to_csv(f"{SCRATCH}/{idx}_{output_csv}", index=False)
+        pd.DataFrame(all_results).to_csv(f"{SCRATCH}/{idx + start}_{output_csv}", index=False)
         
-        if os.path.exists(f'{SCRATCH}/{idx-5}_{output_csv}'):
-            os.remove(f'{SCRATCH}/{idx-5}_{output_csv}')
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_{output_csv}'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_{output_csv}')
 
         if left_meets:
-            pd.DataFrame(left_meets).to_csv(f"{SCRATCH}/{idx}_remaining_meets.csv", index=False)
+            pd.DataFrame(left_meets).to_csv(f"{SCRATCH}/{idx + start}_remaining_meets.csv", index=False)
 
-        if os.path.exists(f'{SCRATCH}/{idx-5}_remaining_meets.csv'):
-            os.remove(f'{SCRATCH}/{idx-5}_remaining_meets.csv')
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_remaining_meets.csv'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_remaining_meets.csv')
 
     pd.DataFrame(all_results).to_csv(output_csv, index=False)
     if left_meets:
@@ -396,4 +397,4 @@ def scrape_iterator(input_csv, output_csv):
 #trial_df = full_df[6970:7002]
 #trial_df.to_csv('trial_run.csv', index=False)
 
-scrape_meets("gendered_meets_01102025.csv", "results.csv")
+scrape_meets("gendered_meets_01102025.csv", "results.csv", 5376)
