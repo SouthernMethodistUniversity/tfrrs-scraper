@@ -9,7 +9,7 @@ conda activate tfrrs
 
 ## Run SBATCH script
 
-This should take approximately 12 hours, which gives 2 seconds between requests.
+This should take approximately 24 hours for every 5,375 links.
 
 ```
 cd ~/tfrrs-scraper
