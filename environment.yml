@@ -5,28 +5,7 @@ channels:
 dependencies:
   - python=3.11
   - pandas
-  - selenium
+  - requests
   - beautifulsoup4
-  - nodejs
-  - gtk4
-  - graphene
-  - gst-plugins-base
-  - gst-plugins-good
-  - gst-plugins-bad
-  - gst-plugins-ugly
-  - gst-libav
-  - gstreamer
-  - flite
-  - libwebp
-  - libavif
-  - harfbuzz
-  - enchant
-  - libsecret
-  - libgl
-  - mesa
   - lxml
   - pip
-  - pip:
-      - undetected-chromedriver
-      - fake-useragent
-      - playwright

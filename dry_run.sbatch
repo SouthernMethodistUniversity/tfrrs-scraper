@@ -11,16 +11,8 @@
 
 mkdir -p debug
 
-pkill -f chromedriver
-pkill -f chrome
-#rm -rf /tmp/selenium-profile-*
-
 module purge
 module load conda
 conda activate tfrrs
-#module load gcc/11.2.0
-#module load mesa
-
-export LD_LIBRARY_PATH=$HOME/.conda/envs/tfrrs/lib:$LD_LIBRARY_PATH
 
 python /users/mlangstonsmith/tfrrs-scraper/tfrrsScraperFinal.py

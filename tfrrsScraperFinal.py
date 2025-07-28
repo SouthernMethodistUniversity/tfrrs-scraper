@@ -3,25 +3,11 @@ import time
 import os
 from urllib.parse import urljoin, quote
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.chrome.service import Service
-#import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-import random
-from playwright.sync_api import sync_playwright
-from multiprocessing import freeze_support
 from collections import defaultdict
 from decimal import Decimal
-from fake_useragent import UserAgent
-#import tempfile
 import pickle
-import uuid
-from pathlib import Path
-import shutil
+import requests
 
 
 EVENTS = [
@@ -69,81 +55,14 @@ EVENTS = [
 SCRATCH = "/lustre/scratch/client/users/mlangstonsmith/tfrrs_partials"
 os.makedirs(SCRATCH, exist_ok=True)
 
-
-def setup_driver(headless=True):
-    from selenium.common.exceptions import SessionNotCreatedException
-    import shutil
-
-    options = Options()
-
-    if headless:
-        options.add_argument("--headless=new")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--no-first-run")
-    options.add_argument("--disable-extensions")
-
-    options.binary_location = os.path.expanduser("~/chromium/chrome-linux64/chrome")
-
-    base_tmp = Path.home() / "chrome_profiles"
-    base_tmp.mkdir(parents=True, exist_ok=True)
-
-    temp_user_data_dir = base_tmp / f"selenium-profile-{uuid.uuid4()}"
-    if temp_user_data_dir.exists():
-        shutil.rmtree(temp_user_data_dir)
-    temp_user_data_dir.mkdir()
-
-    print(f"[DEBUG] Using user-data-dir: {temp_user_data_dir}")
-    options.add_argument(f"--user-data-dir={temp_user_data_dir}")
-
-    chromedriver_path = os.path.expanduser("~/chromedriver/chromedriver")
-    service = Service(executable_path=chromedriver_path)
-
-    try:
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.set_page_load_timeout(30)
-    except SessionNotCreatedException as e:
-        print(f"[ERROR] Could not create session: {e}")
-        raise
-    except Exception as e:
-        print(f"[ERROR] Unexpected error launching Chrome: {e}")
-        raise
-
-    return driver
-
-def playwright_get_html(url, wait_selector="table", timeout=25000):
-    '''
-    Uses Playwright to grab the html from the page, used to supply our selenium scraper
-    '''
-    # Initialize and grab five chrome agents from the useragent library
-    ua = UserAgent()
-    chrome_agents = [ua.chrome for i in range(5)]
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(user_agent=random.choice(chrome_agents))
-            page = context.new_page()
-            page.goto(url, timeout=timeout)
-            page.wait_for_selector(wait_selector, timeout=timeout)
-            html = page.content()
-            browser.close()
-            return html
-    except Exception:
+def get_html(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
         return None
-
-def selenium_html_driver(driver, url):
-    '''
-    Loads html content into a selenium driver via a url'''
-    html = playwright_get_html(url)
-    if not html:
-        return False
-    try:
-        driver.get("data:text/html;charset=utf-8," + quote(html))
-        return True
-    except Exception:
-        return False
+    return BeautifulSoup(response.text, 'lxml')
 
 def clean_time(raw_time):
     '''
@@ -235,56 +154,41 @@ def is_field_event(event_name):
      'pole vault', 'weight throw', 'heptathlon', 'decathlon', 'pentathlon']
     return any(f in event_name.lower() for f in field_events)
 
-def parse_result_tables(table_element, is_field, round_label):
-    '''
-    Parses table using Selenium WebElement to capture only visible <td> values, also
-    dynamically grabbing the column headers by looking at the th text
-    '''
-    rows = table_element.find_elements(By.TAG_NAME, "tr")[1:]
+def parse_result_tables(table, is_field, round_label):
     athlete_data = []
-
-    header_cells = [head for head in table_element.find_elements(By.TAG_NAME, "th") if  head.is_displayed()]
+    header_cells = table.find_all('th')
     col_ind = {}
-    # Dynamaically grabs and assigns column indexes
+
     for i, th in enumerate(header_cells):
-        head_text = th.text.lower()
+        head_text = th.get_text().lower()
         if 'team' in head_text:
             col_ind['team'] = i
-        elif 'name' in head_text or 'athletes' in head_text:
+        elif 'name' in head_text or 'athlete' in head_text:
             col_ind['athlete'] = i
         elif 'mark' in head_text or 'time' in head_text or 'points' in head_text:
             col_ind['mark'] = i
         elif 'year' in head_text or 'squad' in head_text:
             col_ind['year'] = i
 
-    team_i = col_ind.get('team')
-    athlete_i = col_ind.get('athlete')
-    mark_i = col_ind.get('mark')
-    year_i = col_ind.get('year')
-
-
-    for row in rows:
-        cols = [col for col in row.find_elements(By.TAG_NAME, "td") if col.is_displayed()]
+    for row in table.find_all('tr')[1:]:
+        cols = row.find_all('td')
         if len(cols) < 4:
             continue
 
         try:
-            name_link = cols[athlete_i].find_element(By.TAG_NAME, "a") if athlete_i is not None else None
-            athlete_id = name_link.get_attribute('href') if name_link else None
-            name = name_link.text.strip() if name_link else None
+            name_link = cols[col_ind['athlete']].find('a') if 'athlete' in col_ind else None
+            athlete_id = name_link['href'] if name_link else None
+            name = name_link.get_text(strip=True) if name_link else cols[col_ind['athlete']].get_text(strip=True)
         except:
-            athlete_id = None
             name = None
+            athlete_id = None
 
-         
-        year = normalize_year(cols[year_i].text) if year_i is not None else None
-        team = cols[team_i].text.strip() if team_i is not None else None
-
-        text = cols[mark_i].text.strip()
-        mark_val = clean_time(text)
+        year = normalize_year(cols[col_ind['year']].get_text()) if 'year' in col_ind else None
+        team = cols[col_ind['team']].get_text(strip=True) if 'team' in col_ind else None
+        mark_val = clean_time(cols[col_ind['mark']].get_text()) if 'mark' in col_ind else None
         if not mark_val:
             continue
-    
+
         entry = {
             'name': name,
             'year': year,
@@ -328,11 +232,9 @@ def merge_athletes(event_name, table_pairs, is_field):
                     existing['mark'] = max(existing['mark'], athlete['mark'])
     return list(event_aths.values())
 
-def scrape_meets(input_csv, output_csv):
-    '''
-    Uses a persistent Selenium driver to scrape all meets in a single session
-    '''
+def scrape_meets(input_csv, output_csv, start):
     input_df = pd.read_csv(input_csv)
+    input_df = input_df[start:len(input_df)]
     urls = input_df['original_url'].reset_index(drop=True)
     dates = input_df['DATE'].reset_index(drop=True)
     meets = input_df['MEET'].reset_index(drop=True)
@@ -341,91 +243,82 @@ def scrape_meets(input_csv, output_csv):
     all_results = []
     left_meets = []
 
-    driver = setup_driver(headless=True)
+    for idx, url in enumerate(urls):
+        time.sleep(2)
+        print(f"Processing meet {url} -- {idx + start}/{len(urls)}")
 
-    try:
-        for idx, url in enumerate(urls):
-            print(f"Processing meet {url} -- {idx}/{len(urls)}")
-            try:
-                driver.delete_all_cookies()
+        page_soup = get_html(url)
+        if not page_soup:
+            print(f"[ERROR] Could not load meet page: {url}")
+            left_meets.append({
+                'original_url': url,
+                'DATE': dates[idx + start],
+                'MEET': meets[idx + start],
+                'STATE_PROV': states[idx + start]
+            })
+            continue
 
-                if not selenium_html_driver(driver, url):
-                    print(f"Failed to load {url}")
-                    left_meets.append({
-                        'original_url': url,
-                        'DATE': dates[idx],
-                        'MEET': meets[idx],
-                        'STATE_PROV': states[idx]
+        compiled_links = [
+            urljoin(url, a['href']) for a in page_soup.find_all('a', href=True)
+            if 'compiled' in a.text.strip().lower()
+        ]
+
+        for compiled_url in compiled_links:
+            print(f"Visiting compiled: {compiled_url}")
+            compiled_soup = get_html(compiled_url)
+            if not compiled_soup:
+                print(f"[WARN] Skipping compiled URL: {compiled_url}")
+                continue
+
+            gender = athlete_gender(compiled_soup)
+            event_table_map = defaultdict(list)
+
+            for container in compiled_soup.find_all('div', class_=re.compile(r'col-lg-12')):
+                round_label = mark_round(container)
+                event_name, table_id = athlete_event(container)
+                if event_name != 'Unknown':
+                    table = container.find('table', id=table_id) if table_id else container.find('table')
+                    if table:
+                        event_table_map[event_name].append((table, round_label))
+
+            for event_name, table_pairs in event_table_map.items():
+                is_field = is_field_event(event_name)
+                merged_athletes = merge_athletes(event_name, table_pairs, is_field)
+                sorted_aths = sorted(merged_athletes, key=lambda x: -x['mark'] if is_field else x['mark'])
+
+                for place, athlete in enumerate(sorted_aths, 1):
+                    all_results.append({
+                        'Date': dates[idx + start],
+                        'Meet': meets[idx + start],
+                        'State': states[idx + start],
+                        'Name': athlete['name'],
+                        'Year': athlete['year'],
+                        'Event': event_name,
+                        'Prelim': '' if is_field else athlete.get('prelim'),
+                        'Final': '' if is_field else athlete.get('final'),
+                        'Best_Mark': athlete['mark'],
+                        'Place': place,
+                        'Gender': gender,
+                        'Team': athlete['team'],
+                        'Athlete_ID': athlete['athlete_id']
                     })
-                    continue
 
-                soup = BeautifulSoup(driver.page_source, 'lxml')
-                links = soup.find_all('a', href=True)
+        with open(f'{SCRATCH}/{idx + start}_partial.pkl', 'wb') as f:
+            pickle.dump(all_results, f)
+        
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_partial.pkl'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_partial.pkl')
 
-                link_data = [
-                    (link.text.strip(), urljoin(url, link['href']))
-                    for link in links
-                    if 'compiled' in link.text.strip().lower() 
-                ]
+        pd.DataFrame(all_results).to_csv(f"{SCRATCH}/{idx + start}_{output_csv}", index=False)
+        
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_{output_csv}'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_{output_csv}')
 
-                for link_text, compiled_url in link_data:
-                    print(f"Visiting {compiled_url}")
-                    if not selenium_html_driver(driver, compiled_url):
-                        print(f"Failed to load page {compiled_url}")
-                        time.sleep(2)
-                        continue
+        if left_meets:
+            pd.DataFrame(left_meets).to_csv(f"{SCRATCH}/{idx + start}_remaining_meets.csv", index=False)
 
-                    full_soup = BeautifulSoup(driver.page_source, 'lxml')
-                    gender = athlete_gender(full_soup)
-                    table_elements = driver.find_elements(By.TAG_NAME, "table")
-
-                    event_table_map = defaultdict(list)
-                    for container in full_soup.find_all('div', class_=re.compile(r'col-lg-12')):
-                        round_label = mark_round(container)
-                        event_name, table_id = athlete_event(container)
-                        if event_name != 'Unknown' and table_id:
-                            try:
-                                table_element = driver.find_element(By.ID, table_id)
-                                event_table_map[event_name].append((table_element, round_label))
-                            except:
-                                continue
-
-                    for event_name, table_pairs in event_table_map.items():
-                        is_field = is_field_event(event_name)
-                        merged_athletes = merge_athletes(event_name, table_pairs, is_field)
-                        sorted_aths = sorted(merged_athletes, key=lambda x: -x['mark'] if is_field else x['mark'])
-
-                        for place, athlete in enumerate(sorted_aths, 1):
-                            all_results.append({
-                                'Date': dates[idx],
-                                'Meet': meets[idx],
-                                'State': states[idx],
-                                'Name': athlete['name'],
-                                'Year': athlete['year'],
-                                'Event': event_name,
-                                'Prelim': '' if is_field else athlete.get('prelim'),
-                                'Final': '' if is_field else athlete.get('final'),
-                                'Best_Mark': athlete['mark'],
-                                'Place': place,
-                                'Gender': gender,
-                                'Team': athlete['team'],
-                                'Athlete_ID': athlete['athlete_id']
-                            })
-
-                with open(f'{SCRATCH}/{idx}_partial.pkl', 'wb') as f:
-                    pickle.dump(all_results, f)
-
-            except Exception as e:
-                print(f"[ERROR] Meet {url} failed with exception: {e}")
-                left_meets.append({
-                    'original_url': url,
-                    'DATE': dates[idx],
-                    'MEET': meets[idx],
-                    'STATE_PROV': states[idx]
-                })
-
-    finally:
-        driver.quit()
+        if os.path.exists(f'{SCRATCH}/{idx + start - 5}_remaining_meets.csv'):
+            os.remove(f'{SCRATCH}/{idx + start - 5}_remaining_meets.csv')
 
     pd.DataFrame(all_results).to_csv(output_csv, index=False)
     if left_meets:
@@ -434,7 +327,7 @@ def scrape_meets(input_csv, output_csv):
         if os.path.exists('remaining_meets.csv'):
             os.remove('remaining_meets.csv')
 
-    print(f"Saved to {output_csv} with {len(all_results)} rows")
+    print(f"[✓] Saved to {output_csv} with {len(all_results)} rows")
 
 def scrape_iterator(input_csv, output_csv):
     '''
@@ -501,7 +394,7 @@ def scrape_iterator(input_csv, output_csv):
 #full_df = pd.read_csv("gendered_meets_01102025.csv")
 #full_df = full_df[::2]
 #full_df.to_csv('adj.csv', index=False)
-#trial_df = full_df[7000:7002]
+#trial_df = full_df[6970:7002]
 #trial_df.to_csv('trial_run.csv', index=False)
 
-scrape_meets("gendered_meets_01102025.csv", "results.csv")
+scrape_meets("gendered_meets_01102025.csv", "results.csv", 5376)
