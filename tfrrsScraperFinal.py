@@ -397,4 +397,4 @@ def scrape_iterator(input_csv, output_csv):
 #trial_df = full_df[6970:7002]
 #trial_df.to_csv('trial_run.csv', index=False)
 
-scrape_meets("gendered_meets_01102025.csv", "results.csv", 10974)
+scrape_meets("gendered_meets_01102025.csv", "results.csv", 5376)
