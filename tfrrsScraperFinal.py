@@ -252,9 +252,9 @@ def scrape_meets(input_csv, output_csv, start):
             print(f"[ERROR] Could not load meet page: {url}")
             left_meets.append({
                 'original_url': url,
-                'DATE': dates[idx + start],
-                'MEET': meets[idx + start],
-                'STATE_PROV': states[idx + start]
+                'DATE': dates[idx],
+                'MEET': meets[idx],
+                'STATE_PROV': states[idx]
             })
             continue
 
@@ -288,9 +288,9 @@ def scrape_meets(input_csv, output_csv, start):
 
                 for place, athlete in enumerate(sorted_aths, 1):
                     all_results.append({
-                        'Date': dates[idx + start],
-                        'Meet': meets[idx + start],
-                        'State': states[idx + start],
+                        'Date': dates[idx],
+                        'Meet': meets[idx],
+                        'State': states[idx],
                         'Name': athlete['name'],
                         'Year': athlete['year'],
                         'Event': event_name,
